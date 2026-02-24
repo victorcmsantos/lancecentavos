@@ -2,7 +2,9 @@ package http
 
 import (
 	"context"
+	"net"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -27,8 +29,29 @@ func NewRouter(
 ) *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Logger(), gin.Recovery())
+	allowedOrigin := strings.TrimSpace(cfg.CORSOrigin)
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{cfg.CORSOrigin},
+		AllowOriginFunc: func(origin string) bool {
+			if origin == "" {
+				return false
+			}
+			if allowedOrigin != "" && origin == allowedOrigin {
+				return true
+			}
+			u, err := url.Parse(origin)
+			if err != nil {
+				return false
+			}
+			host := strings.ToLower(u.Hostname())
+			if host == "localhost" {
+				return true
+			}
+			if ip := net.ParseIP(host); ip != nil && ip.IsLoopback() {
+				return true
+			}
+			// Local multi-tenant testing (e.g. influencer1.localhost:3000).
+			return strings.HasSuffix(host, ".localhost")
+		},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Authorization", "Content-Type"},
 		ExposeHeaders:    []string{"Content-Length"},
@@ -54,12 +77,18 @@ func NewRouter(
 		v1.GET("/auctions", handler.ListAuctions)
 		v1.GET("/auctions/:id", handler.GetAuctionByID)
 		v1.GET("/auctions/:id/bids", handler.ListBids)
+		v1.GET("/tenants", handler.ListTenants)
 		v1.GET("/tenants/:subdomain", handler.GetTenantBySubdomain)
 	}
 
 	authorized := v1.Group("/")
 	authorized.Use(auth.RequireAuth())
 	{
+		authorized.GET("/users/me", handler.GetMe)
+		authorized.GET("/admin/users", RequireRoles(domain.RoleAdmin), handler.ListUsers)
+		authorized.POST("/admin/users/:id/approve", RequireRoles(domain.RoleAdmin), handler.ApproveInfluencer)
+		authorized.PATCH("/admin/users/:id/approval", RequireRoles(domain.RoleAdmin), handler.UpdateInfluencerApproval)
+		authorized.POST("/users/me/bid-packages", handler.PurchaseBidPackage)
 		authorized.POST("/auctions", RequireRoles(domain.RoleInfluencer, domain.RoleAdmin), handler.CreateAuction)
 		authorized.POST("/auctions/:id/start", RequireRoles(domain.RoleInfluencer, domain.RoleAdmin), handler.StartAuction)
 		authorized.POST("/auctions/:id/finish", RequireRoles(domain.RoleInfluencer, domain.RoleAdmin), handler.FinishAuction)

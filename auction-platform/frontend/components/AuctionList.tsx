@@ -1,9 +1,11 @@
 import Link from 'next/link';
 import { Auction } from '@/lib/types';
+import { formatCents } from '@/lib/money';
+import { traduzirStatusLeilao } from '@/lib/i18n';
 
 export function AuctionList({ auctions }: { auctions: Auction[] }) {
   if (!auctions.length) {
-    return <p className="text-slate-500">No auctions available.</p>;
+    return <p className="text-slate-500">Nenhum leilao disponivel.</p>;
   }
 
   return (
@@ -13,11 +15,11 @@ export function AuctionList({ auctions }: { auctions: Auction[] }) {
           <h3 className="text-lg font-semibold">{auction.title}</h3>
           <p className="mt-2 text-sm text-slate-600 line-clamp-2">{auction.description}</p>
           <div className="mt-4 flex items-center justify-between">
-            <span className="text-sm">Current: ${auction.current_price}</span>
-            <span className="rounded bg-brand/10 px-2 py-1 text-xs capitalize text-brand">{auction.status}</span>
+            <span className="text-sm">Atual: {formatCents(auction.current_price)}</span>
+            <span className="rounded bg-brand/10 px-2 py-1 text-xs capitalize text-brand">{traduzirStatusLeilao(auction.status)}</span>
           </div>
           <Link href={`/auction/${auction.id}`} className="mt-4 inline-block text-sm font-medium text-brand">
-            Enter auction
+            Entrar no leilao
           </Link>
         </div>
       ))}

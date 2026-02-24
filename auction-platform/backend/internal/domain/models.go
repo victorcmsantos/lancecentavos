@@ -24,13 +24,16 @@ const (
 )
 
 type User struct {
-	ID           uuid.UUID `gorm:"type:uuid;primaryKey"`
-	Email        string    `gorm:"uniqueIndex;size:255;not null"`
-	PasswordHash string    `gorm:"size:255;not null"`
-	Role         UserRole  `gorm:"type:varchar(32);not null;default:user"`
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
-	Influencer   Influencer
+	ID              uuid.UUID `gorm:"type:uuid;primaryKey"`
+	Email           string    `gorm:"uniqueIndex;size:255;not null"`
+	PasswordHash    string    `gorm:"size:255;not null"`
+	Role            UserRole  `gorm:"type:varchar(32);not null;default:user"`
+	IsApproved      bool      `gorm:"not null;default:true"`
+	BidCredits      int64     `gorm:"not null;default:0"`
+	BidCreditsValue int64     `gorm:"not null;default:0"`
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+	Influencer      Influencer
 }
 
 func (u *User) BeforeCreate(_ *gorm.DB) error {
@@ -59,18 +62,22 @@ func (i *Influencer) BeforeCreate(_ *gorm.DB) error {
 }
 
 type Auction struct {
-	ID             uuid.UUID `gorm:"type:uuid;primaryKey"`
-	InfluencerID   uuid.UUID `gorm:"type:uuid;index;not null"`
-	Title          string    `gorm:"size:255;not null"`
-	Description    string    `gorm:"type:text"`
-	StartPrice     int64     `gorm:"not null"`
-	CurrentPrice   int64     `gorm:"not null"`
-	StartTime      *time.Time
-	EndTime        *time.Time
-	Status         AuctionStatus `gorm:"type:varchar(32);not null;default:draft"`
-	ServerTimeUnix int64         `gorm:"not null;default:0"`
-	CreatedAt      time.Time
-	UpdatedAt      time.Time
+	ID                 uuid.UUID `gorm:"type:uuid;primaryKey"`
+	InfluencerID       uuid.UUID `gorm:"type:uuid;index;not null"`
+	Title              string    `gorm:"size:255;not null"`
+	Description        string    `gorm:"type:text"`
+	ImageURLs          []string  `gorm:"type:jsonb;serializer:json"`
+	ProductValue       int64     `gorm:"not null;default:0"`
+	InfluencerTransfer int64     `gorm:"not null;default:0"`
+	StartPrice         int64     `gorm:"not null"`
+	CurrentPrice       int64     `gorm:"not null"`
+	CountdownSec       int64     `gorm:"not null;default:3600"`
+	StartTime          *time.Time
+	EndTime            *time.Time
+	Status             AuctionStatus `gorm:"type:varchar(32);not null;default:draft"`
+	ServerTimeUnix     int64         `gorm:"not null;default:0"`
+	CreatedAt          time.Time
+	UpdatedAt          time.Time
 }
 
 func (a *Auction) BeforeCreate(_ *gorm.DB) error {

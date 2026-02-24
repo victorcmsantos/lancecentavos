@@ -10,25 +10,67 @@ function formatSeconds(totalSeconds: number): string {
   return `${h}:${m}:${s}`;
 }
 
-export function Countdown({ endTime, serverTimeUnix }: { endTime?: string; serverTimeUnix: number }) {
+type BidUpdateEvent = CustomEvent<{
+  auctionId?: string;
+  endTime?: string;
+  serverTimeUnix?: number;
+}>;
+
+export function Countdown({ auctionID, endTime, serverTimeUnix }: { auctionID: string; endTime?: string; serverTimeUnix: number }) {
   const [remaining, setRemaining] = useState<number>(0);
+  const [liveEndTime, setLiveEndTime] = useState<string | undefined>(endTime);
+  const [liveServerTimeUnix, setLiveServerTimeUnix] = useState<number>(serverTimeUnix);
 
   useEffect(() => {
-    if (!endTime) return;
+    setLiveEndTime(endTime);
+    setLiveServerTimeUnix(serverTimeUnix);
+  }, [endTime, serverTimeUnix]);
 
-    const end = Math.floor(new Date(endTime).getTime() / 1000);
-    const clientNow = Math.floor(Date.now() / 1000);
-    const delta = clientNow - serverTimeUnix;
+  useEffect(() => {
+    const handleBidUpdate = (event: Event) => {
+      const custom = event as BidUpdateEvent;
+      if (custom.detail?.auctionId !== auctionID) return;
+      if (custom.detail?.endTime) {
+        setLiveEndTime(custom.detail.endTime);
+      }
+      if (typeof custom.detail?.serverTimeUnix === 'number') {
+        setLiveServerTimeUnix(custom.detail.serverTimeUnix);
+      }
+    };
+
+    window.addEventListener('auction:bid-update', handleBidUpdate);
+    return () => window.removeEventListener('auction:bid-update', handleBidUpdate);
+  }, [auctionID]);
+
+  useEffect(() => {
+    if (!liveEndTime) {
+      setRemaining(0);
+      return;
+    }
+
+    const end = Math.floor(new Date(liveEndTime).getTime() / 1000);
 
     const tick = () => {
-      const adjustedNow = Math.floor(Date.now() / 1000) - delta;
-      setRemaining(Math.max(0, end - adjustedNow));
+      const now = Math.floor(Date.now() / 1000);
+      setRemaining(Math.max(0, end - now));
     };
 
     tick();
     const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
-  }, [endTime, serverTimeUnix]);
+  }, [liveEndTime, liveServerTimeUnix]);
 
-  return <span className="font-mono text-lg font-semibold">{formatSeconds(remaining)}</span>;
+  if (!liveEndTime) {
+    return (
+      <div className="text-right">
+        <span className="text-sm font-medium text-slate-500">Aguardando inicio</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="text-right">
+      <span className="font-mono text-lg font-semibold">{remaining > 0 ? formatSeconds(remaining) : 'Encerrado'}</span>
+    </div>
+  );
 }

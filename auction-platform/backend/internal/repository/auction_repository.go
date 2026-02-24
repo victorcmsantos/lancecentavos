@@ -21,10 +21,13 @@ func (r *AuctionRepository) Create(ctx context.Context, auction *domain.Auction)
 	return r.db.WithContext(ctx).Create(auction).Error
 }
 
-func (r *AuctionRepository) List(ctx context.Context, limit, offset int) ([]domain.Auction, error) {
+func (r *AuctionRepository) List(ctx context.Context, limit, offset int, influencerID *uuid.UUID) ([]domain.Auction, error) {
 	var auctions []domain.Auction
-	err := r.db.WithContext(ctx).
-		Order("created_at DESC").
+	query := r.db.WithContext(ctx).Order("created_at DESC")
+	if influencerID != nil {
+		query = query.Where("influencer_id = ?", *influencerID)
+	}
+	err := query.
 		Limit(limit).
 		Offset(offset).
 		Find(&auctions).Error

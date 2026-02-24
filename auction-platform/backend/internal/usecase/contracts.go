@@ -13,17 +13,22 @@ type UserRepository interface {
 	Create(ctx context.Context, user *domain.User) error
 	GetByEmail(ctx context.Context, email string) (*domain.User, error)
 	GetByID(ctx context.Context, userID uuid.UUID) (*domain.User, error)
+	List(ctx context.Context, limit, offset int) ([]domain.User, error)
+	Update(ctx context.Context, user *domain.User) error
+	GetByIDForUpdate(ctx context.Context, tx *gorm.DB, userID uuid.UUID) (*domain.User, error)
+	UpdateInTx(ctx context.Context, tx *gorm.DB, user *domain.User) error
 }
 
 type InfluencerRepository interface {
 	Create(ctx context.Context, influencer *domain.Influencer) error
 	GetByUserID(ctx context.Context, userID uuid.UUID) (*domain.Influencer, error)
 	GetBySubdomain(ctx context.Context, subdomain string) (*domain.Influencer, error)
+	List(ctx context.Context, limit, offset int) ([]domain.Influencer, error)
 }
 
 type AuctionRepository interface {
 	Create(ctx context.Context, auction *domain.Auction) error
-	List(ctx context.Context, limit, offset int) ([]domain.Auction, error)
+	List(ctx context.Context, limit, offset int, influencerID *uuid.UUID) ([]domain.Auction, error)
 	GetByID(ctx context.Context, auctionID uuid.UUID) (*domain.Auction, error)
 	Update(ctx context.Context, auction *domain.Auction) error
 	GetByIDForUpdate(ctx context.Context, tx *gorm.DB, auctionID uuid.UUID) (*domain.Auction, error)
@@ -55,7 +60,10 @@ type CreateAuctionInput struct {
 	InfluencerUserID uuid.UUID
 	Title            string
 	Description      string
+	ImageURLs        []string
+	ProductValue     int64
 	StartPrice       int64
+	CountdownSec     *int64
 	StartTime        *time.Time
 	EndTime          *time.Time
 }

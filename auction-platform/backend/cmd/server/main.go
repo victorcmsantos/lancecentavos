@@ -33,9 +33,9 @@ func main() {
 
 	wsManager := websocket.NewManager(rdb)
 
-	authUC := usecase.NewAuthUsecase(userRepo, influencerRepo, cfg.JWTSecret, cfg.JWTIssuer, cfg.JWTExpiryMinutes)
-	auctionUC := usecase.NewAuctionUsecase(auctionRepo, influencerRepo)
-	bidUC := usecase.NewBidUsecase(database, auctionRepo, bidRepo, rdb)
+	authUC := usecase.NewAuthUsecase(database, userRepo, influencerRepo, cfg.JWTSecret, cfg.JWTIssuer, cfg.JWTExpiryMinutes)
+	auctionUC := usecase.NewAuctionUsecase(auctionRepo, userRepo, influencerRepo, int64(cfg.BidCountdownSec))
+	bidUC := usecase.NewBidUsecase(database, userRepo, auctionRepo, bidRepo, rdb)
 	tenantUC := usecase.NewTenantUsecase(influencerRepo)
 
 	r := http.NewRouter(

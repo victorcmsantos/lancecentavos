@@ -4,10 +4,15 @@ import type { NextRequest } from 'next/server';
 export function middleware(request: NextRequest) {
   const host = request.headers.get('host') ?? '';
   const hostname = host.split(':')[0];
-  const segments = hostname.split('.');
+  const normalizedHost = hostname.toLowerCase();
+  const segments = normalizedHost.split('.');
 
   let subdomain = 'default';
-  if (segments.length >= 2 && segments[0] !== 'localhost') {
+  const isIPv4 = /^\d{1,3}(\.\d{1,3}){3}$/.test(normalizedHost);
+  const isIPv6 = normalizedHost.includes(':');
+  const isLoopback = normalizedHost === 'localhost' || isIPv4 || isIPv6;
+
+  if (!isLoopback && segments.length >= 2) {
     subdomain = segments[0];
   }
 

@@ -15,6 +15,7 @@ type Config struct {
 	JWTIssuer        string
 	JWTExpiryMinutes int
 	CORSOrigin       string
+	BidCountdownSec  int
 }
 
 func Load() Config {
@@ -28,6 +29,7 @@ func Load() Config {
 		JWTIssuer:        getEnv("JWT_ISSUER", "auction-platform"),
 		JWTExpiryMinutes: getEnvInt("JWT_EXPIRY_MINUTES", 60),
 		CORSOrigin:       getEnv("CORS_ORIGIN", "http://localhost:3000"),
+		BidCountdownSec:  getEnvInt("BID_COUNTDOWN_SECONDS", 3600),
 	}
 }
 

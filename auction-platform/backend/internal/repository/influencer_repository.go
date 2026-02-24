@@ -37,3 +37,16 @@ func (r *InfluencerRepository) GetBySubdomain(ctx context.Context, subdomain str
 	}
 	return &influencer, nil
 }
+
+func (r *InfluencerRepository) List(ctx context.Context, limit, offset int) ([]domain.Influencer, error) {
+	var influencers []domain.Influencer
+	err := r.db.WithContext(ctx).
+		Order("created_at DESC").
+		Limit(limit).
+		Offset(offset).
+		Find(&influencers).Error
+	if err != nil {
+		return nil, err
+	}
+	return influencers, nil
+}
