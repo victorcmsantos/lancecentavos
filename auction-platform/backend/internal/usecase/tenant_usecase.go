@@ -15,9 +15,9 @@ func NewTenantUsecase(influencerRepo InfluencerRepository) *TenantUsecase {
 }
 
 func (u *TenantUsecase) GetBySubdomain(ctx context.Context, subdomain string) (*domain.Influencer, error) {
-	return u.influencerRepo.GetBySubdomain(ctx, subdomain)
+	return u.influencerRepo.GetApprovedBySubdomain(ctx, subdomain)
 }
 
 func (u *TenantUsecase) List(ctx context.Context, limit, offset int) ([]domain.Influencer, error) {
-	return u.influencerRepo.List(ctx, limit, offset)
+	return u.influencerRepo.ListApproved(ctx, limit, offset)
 }

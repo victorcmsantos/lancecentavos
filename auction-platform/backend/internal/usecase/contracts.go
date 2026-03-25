@@ -23,7 +23,9 @@ type InfluencerRepository interface {
 	Create(ctx context.Context, influencer *domain.Influencer) error
 	GetByUserID(ctx context.Context, userID uuid.UUID) (*domain.Influencer, error)
 	GetBySubdomain(ctx context.Context, subdomain string) (*domain.Influencer, error)
+	GetApprovedBySubdomain(ctx context.Context, subdomain string) (*domain.Influencer, error)
 	List(ctx context.Context, limit, offset int) ([]domain.Influencer, error)
+	ListApproved(ctx context.Context, limit, offset int) ([]domain.Influencer, error)
 }
 
 type AuctionRepository interface {

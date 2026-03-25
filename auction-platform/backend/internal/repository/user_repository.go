@@ -18,7 +18,7 @@ func NewUserRepository(db *gorm.DB) *UserRepository {
 }
 
 func (r *UserRepository) Create(ctx context.Context, user *domain.User) error {
-	return r.db.WithContext(ctx).Create(user).Error
+	return r.db.WithContext(ctx).Select("*").Create(user).Error
 }
 
 func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*domain.User, error) {

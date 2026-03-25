@@ -2,6 +2,8 @@
 
 import { alpha, Box, Button, Card, CardActionArea, CardContent, Divider, Stack, Typography } from '@mui/material';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { getCurrentUser } from '@/lib/auth';
 import { Tenant } from '@/lib/types';
 
 export function LandingPageContent({
@@ -15,8 +17,13 @@ export function LandingPageContent({
   heroTitle: string;
   heroDescription: string;
 }) {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const featuredInfluencer = resolvedInfluencers[0] ?? null;
   const remainingInfluencers = featuredInfluencers(resolvedInfluencers);
+
+  useEffect(() => {
+    setIsAuthenticated(Boolean(getCurrentUser()?.id));
+  }, []);
 
   return (
     <Stack spacing={5}>
@@ -42,8 +49,14 @@ export function LandingPageContent({
             <Button href="#influencers" variant="contained" size="large">
               Explorar vitrines
             </Button>
-            <Button component={Link} href="/login" variant="outlined" size="large" color="inherit">
-              Entrar para dar lances
+            <Button
+              component={Link}
+              href={isAuthenticated ? '/user/bid-packages' : '/login'}
+              variant="outlined"
+              size="large"
+              color="inherit"
+            >
+              {isAuthenticated ? 'Comprar mais lances' : 'Entrar para dar lances'}
             </Button>
           </Stack>
         </Box>

@@ -11,8 +11,12 @@ export function middleware(request: NextRequest) {
   const isIPv4 = /^\d{1,3}(\.\d{1,3}){3}$/.test(normalizedHost);
   const isIPv6 = normalizedHost.includes(':');
   const isLoopback = normalizedHost === 'localhost' || isIPv4 || isIPv6;
+  const isLocalhostFamily = normalizedHost.endsWith('.localhost');
+  const hasTenantSegmentOnPublicHost = segments.length >= 4;
 
-  if (!isLoopback && segments.length >= 2) {
+  if (isLocalhostFamily && segments.length >= 2) {
+    subdomain = segments[0];
+  } else if (!isLoopback && hasTenantSegmentOnPublicHost) {
     subdomain = segments[0];
   }
 

@@ -26,14 +26,19 @@ export default async function LandingPage() {
   const subdomain = (requestHeaders.get('x-tenant-subdomain') ?? 'default').toLowerCase();
 
   let resolvedInfluencers: Tenant[] = [];
+  let isDedicatedTenantView = false;
   if (subdomain && subdomain !== 'default') {
     const influencer = await getInfluencerBySubdomain(subdomain);
-    resolvedInfluencers = influencer ? [influencer] : [];
+    if (influencer) {
+      resolvedInfluencers = [influencer];
+      isDedicatedTenantView = true;
+    } else {
+      resolvedInfluencers = await getInfluencers();
+    }
   } else {
     resolvedInfluencers = await getInfluencers();
   }
 
-  const isDedicatedTenantView = Boolean(subdomain && subdomain !== 'default');
   const heroTitle = isDedicatedTenantView
     ? `Entre nos leiloes de ${resolvedInfluencers[0]?.display_name ?? 'um influenciador'}`
     : 'Escolha uma vitrine, acompanhe o ritmo e entre no lance certo';

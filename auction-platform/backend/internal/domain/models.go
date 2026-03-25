@@ -28,7 +28,7 @@ type User struct {
 	Email           string    `gorm:"uniqueIndex;size:255;not null"`
 	PasswordHash    string    `gorm:"size:255;not null"`
 	Role            UserRole  `gorm:"type:varchar(32);not null;default:user"`
-	IsApproved      bool      `gorm:"not null;default:true"`
+	IsApproved      bool      `gorm:"not null;default:false"`
 	BidCredits      int64     `gorm:"not null;default:0"`
 	BidCreditsValue int64     `gorm:"not null;default:0"`
 	CreatedAt       time.Time

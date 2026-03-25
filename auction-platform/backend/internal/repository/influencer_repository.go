@@ -38,10 +38,40 @@ func (r *InfluencerRepository) GetBySubdomain(ctx context.Context, subdomain str
 	return &influencer, nil
 }
 
+func (r *InfluencerRepository) GetApprovedBySubdomain(ctx context.Context, subdomain string) (*domain.Influencer, error) {
+	var influencer domain.Influencer
+	err := r.db.WithContext(ctx).
+		Joins("JOIN users ON users.id = influencers.user_id").
+		Where("influencers.subdomain = ?", subdomain).
+		Where("users.role = ?", domain.RoleInfluencer).
+		Where("users.is_approved = ?", true).
+		First(&influencer).Error
+	if err != nil {
+		return nil, err
+	}
+	return &influencer, nil
+}
+
 func (r *InfluencerRepository) List(ctx context.Context, limit, offset int) ([]domain.Influencer, error) {
 	var influencers []domain.Influencer
 	err := r.db.WithContext(ctx).
 		Order("created_at DESC").
+		Limit(limit).
+		Offset(offset).
+		Find(&influencers).Error
+	if err != nil {
+		return nil, err
+	}
+	return influencers, nil
+}
+
+func (r *InfluencerRepository) ListApproved(ctx context.Context, limit, offset int) ([]domain.Influencer, error) {
+	var influencers []domain.Influencer
+	err := r.db.WithContext(ctx).
+		Joins("JOIN users ON users.id = influencers.user_id").
+		Where("users.role = ?", domain.RoleInfluencer).
+		Where("users.is_approved = ?", true).
+		Order("influencers.created_at DESC").
 		Limit(limit).
 		Offset(offset).
 		Find(&influencers).Error
