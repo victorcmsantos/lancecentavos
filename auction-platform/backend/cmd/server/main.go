@@ -5,6 +5,7 @@ import (
 
 	"github.com/example/auction-platform/backend/internal/delivery/http"
 	"github.com/example/auction-platform/backend/internal/delivery/websocket"
+	"github.com/example/auction-platform/backend/internal/infra/bootstrap"
 	"github.com/example/auction-platform/backend/internal/infra/config"
 	"github.com/example/auction-platform/backend/internal/infra/db"
 	redisinfra "github.com/example/auction-platform/backend/internal/infra/redis"
@@ -23,6 +24,14 @@ func main() {
 	if err := db.Migrate(database); err != nil {
 		log.Fatalf("database migration failed: %v", err)
 	}
+
+	bootstrap.EnsureAdmin(
+		database,
+		cfg.BootstrapAdminEmail,
+		cfg.BootstrapAdminPassword,
+		cfg.BootstrapAdminForceReset,
+		cfg.BootstrapAdminOutputPath,
+	)
 
 	rdb := redisinfra.Connect(cfg.RedisAddr, cfg.RedisPassword, cfg.RedisDB)
 

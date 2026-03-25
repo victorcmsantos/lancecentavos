@@ -35,6 +35,9 @@ func NewRouter(
 			if origin == "" {
 				return false
 			}
+			if allowedOrigin == "*" {
+				return true
+			}
 			if allowedOrigin != "" && origin == allowedOrigin {
 				return true
 			}
@@ -49,7 +52,7 @@ func NewRouter(
 			if ip := net.ParseIP(host); ip != nil && ip.IsLoopback() {
 				return true
 			}
-			// Local multi-tenant testing (e.g. influencer1.localhost:3000).
+			// Local multi-tenant testing (e.g. influencer1.localhost:13000).
 			return strings.HasSuffix(host, ".localhost")
 		},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},

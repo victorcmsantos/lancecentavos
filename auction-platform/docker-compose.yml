@@ -1,14 +1,12 @@
-version: '3.9'
-
 services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: auction
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ${POSTGRES_DB:-auction}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
-      - '5432:5432'
+      - '${POSTGRES_PORT:-15432}:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -20,7 +18,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - '6379:6379'
+      - '${REDIS_PORT:-16379}:6379'
     healthcheck:
       test: ['CMD', 'redis-cli', 'ping']
       interval: 5s
@@ -31,10 +29,27 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    volumes:
+      - ./.generated:/bootstrap-admin
     env_file:
-      - ./backend/.env.example
+      - ./.env
+    environment:
+      PORT: ${BACKEND_LISTEN_PORT:-8080}
+      DATABASE_URL: ${DATABASE_URL:-postgres://postgres:postgres@postgres:5432/auction?sslmode=disable}
+      REDIS_ADDR: ${REDIS_ADDR:-redis:6379}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_DB: ${REDIS_DB:-0}
+      JWT_SECRET: ${JWT_SECRET:-replace-with-strong-secret}
+      JWT_ISSUER: ${JWT_ISSUER:-auction-platform}
+      JWT_EXPIRY_MINUTES: ${JWT_EXPIRY_MINUTES:-60}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:${FRONTEND_PORT:-13000}}
+      BID_COUNTDOWN_SECONDS: ${BID_COUNTDOWN_SECONDS:-3600}
+      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-admin@local}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-}
+      BOOTSTRAP_ADMIN_FORCE_RESET: ${BOOTSTRAP_ADMIN_FORCE_RESET:-false}
+      BOOTSTRAP_ADMIN_OUTPUT_PATH: ${BOOTSTRAP_ADMIN_OUTPUT_PATH:-/bootstrap-admin/admin.json}
     ports:
-      - '8080:8080'
+      - '${BACKEND_PORT:-18080}:8080'
     depends_on:
       postgres:
         condition: service_healthy
@@ -45,10 +60,17 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:${BACKEND_PORT:-18080}/api/v1}
+        NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL:-ws://localhost:${BACKEND_PORT:-18080}}
     env_file:
-      - ./frontend/.env.example
+      - ./.env
+    environment:
+      API_URL_INTERNAL: ${API_URL_INTERNAL:-http://backend:8080/api/v1}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:${BACKEND_PORT:-18080}/api/v1}
+      NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL:-ws://localhost:${BACKEND_PORT:-18080}}
     ports:
-      - '3000:3000'
+      - '${FRONTEND_PORT:-13000}:3000'
     depends_on:
       - backend
 

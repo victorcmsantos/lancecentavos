@@ -1,6 +1,24 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import {
+  Alert,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  FormControlLabel,
+  Stack,
+  Switch,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TextField,
+  Typography
+} from '@mui/material';
+import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { api, authHeaders } from '@/lib/api';
 import { clearToken, getToken, getTokenRole, setAuthSession } from '@/lib/auth';
 
@@ -26,56 +44,66 @@ function UsersTable({
   togglingByUserID?: Record<string, boolean>;
 }) {
   return (
-    <div className="overflow-x-auto rounded-lg border bg-white">
-      <table className="min-w-full text-sm">
-        <thead className="border-b bg-slate-50 text-left">
-          <tr>
-            <th className="px-4 py-3">E-mail</th>
-            {showApproval ? <th className="px-4 py-3">Aprovacao</th> : null}
-            <th className="px-4 py-3">Criado Em</th>
-            <th className="px-4 py-3">ID</th>
-          </tr>
-        </thead>
-        <tbody>
+    <TableContainer component={Card} variant="outlined" sx={{ borderRadius: 6 }}>
+      <Table>
+        <TableHead>
+          <TableRow>
+            <TableCell>E-mail</TableCell>
+            {showApproval ? <TableCell>Aprovacao</TableCell> : null}
+            <TableCell>Criado em</TableCell>
+            <TableCell>ID</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
           {users.map((user) => (
-            <tr key={user.id} className="border-b last:border-b-0">
-              <td className="px-4 py-3">{user.email}</td>
+            <TableRow key={user.id} hover>
+              <TableCell>{user.email}</TableCell>
               {showApproval ? (
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      disabled={Boolean(togglingByUserID?.[user.id])}
-                      onClick={() => onToggleApproval?.(user.id, !(user.is_approved ?? false))}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${
-                        user.is_approved ? 'bg-green-600' : 'bg-slate-500'
-                      } disabled:opacity-60`}
-                      aria-label={user.is_approved ? 'Definir como pendente' : 'Aprovar influencer'}
-                    >
-                      <span
-                        className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
-                          user.is_approved ? 'translate-x-5' : 'translate-x-1'
-                        }`}
+                <TableCell>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={Boolean(user.is_approved)}
+                        disabled={Boolean(togglingByUserID?.[user.id])}
+                        onChange={() => onToggleApproval?.(user.id, !(user.is_approved ?? false))}
                       />
-                    </button>
-                    <span className={user.is_approved ? 'text-green-700' : 'text-amber-700'}>{user.is_approved ? 'Aprovado' : 'Pendente'}</span>
-                  </div>
-                </td>
+                    }
+                    label={user.is_approved ? 'Aprovado' : 'Pendente'}
+                  />
+                </TableCell>
               ) : null}
-              <td className="px-4 py-3">{new Date(user.created_at).toLocaleString('pt-BR')}</td>
-              <td className="px-4 py-3 font-mono text-xs">{user.id}</td>
-            </tr>
+              <TableCell>{new Date(user.created_at).toLocaleString('pt-BR')}</TableCell>
+              <TableCell sx={{ fontFamily: 'monospace' }}>{user.id}</TableCell>
+            </TableRow>
           ))}
           {!users.length ? (
-            <tr>
-              <td className="px-4 py-3 text-slate-500" colSpan={showApproval ? 4 : 3}>
+            <TableRow>
+              <TableCell colSpan={showApproval ? 4 : 3} sx={{ color: 'text.secondary' }}>
                 {emptyLabel}
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ) : null}
-        </tbody>
-      </table>
-    </div>
+        </TableBody>
+      </Table>
+    </TableContainer>
+  );
+}
+
+function SummaryCard({ label, value, note }: { label: string; value: string | number; note: string }) {
+  return (
+    <Card sx={{ borderRadius: 7 }}>
+      <CardContent sx={{ p: 3 }}>
+        <Typography variant="overline" color="text.secondary" sx={{ letterSpacing: '0.16em', fontWeight: 700 }}>
+          {label}
+        </Typography>
+        <Typography variant="h3" sx={{ mt: 1 }}>
+          {value}
+        </Typography>
+        <Typography color="text.secondary" sx={{ mt: 1.5 }}>
+          {note}
+        </Typography>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -87,17 +115,14 @@ export default function AdminPage() {
   const [message, setMessage] = useState('');
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
   const [togglingByUserID, setTogglingByUserID] = useState<Record<string, boolean>>({});
+  const [loggingIn, setLoggingIn] = useState(false);
 
   useEffect(() => {
     setAuthRole(getTokenRole());
     setIsReady(true);
   }, []);
 
-  useEffect(() => {
-    void loadUsers();
-  }, [authRole]);
-
-  async function loadUsers() {
+  const loadUsers = useCallback(async () => {
     const token = getToken();
     if (!token || authRole !== 'admin') {
       setUsers([]);
@@ -113,12 +138,17 @@ export default function AdminPage() {
         setError(err?.response?.data?.error ?? 'Falha ao carregar usuarios.');
       }
     }
-  }
+  }, [authRole]);
+
+  useEffect(() => {
+    void loadUsers();
+  }, [loadUsers]);
 
   async function handleLogin(event: FormEvent) {
     event.preventDefault();
     setError('');
     setMessage('');
+    setLoggingIn(true);
 
     try {
       const response = await api.post('/auth/login', loginForm);
@@ -126,14 +156,17 @@ export default function AdminPage() {
       if (role !== 'admin') {
         clearToken();
         setError('Esta conta nao e admin.');
+        setLoggingIn(false);
         return;
       }
 
       setAuthSession(response.data.token, response.data.user);
       setAuthRole('admin');
       setMessage('Autenticado com sucesso.');
+      setLoggingIn(false);
     } catch (err: any) {
       setError(err?.response?.data?.error ?? 'Falha no login');
+      setLoggingIn(false);
     }
   }
 
@@ -143,6 +176,7 @@ export default function AdminPage() {
     setUsers([]);
     setMessage('');
     setError('');
+    setLoggingIn(false);
   }
 
   async function handleToggleInfluencerApproval(userID: string, isApproved: boolean) {
@@ -169,61 +203,113 @@ export default function AdminPage() {
 
   if (authRole !== 'admin') {
     return (
-      <div className="mx-auto max-w-2xl rounded-lg border bg-white p-6">
-        <h1 className="text-2xl font-semibold">Acesso Admin</h1>
-        <p className="mt-2 text-slate-600">Entre com uma conta admin para acessar esta area.</p>
-        <form onSubmit={handleLogin} className="mt-6 space-y-3">
-          <input
-            className="w-full rounded border px-3 py-2"
-            type="email"
-            placeholder="E-mail"
-            value={loginForm.email}
-            onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
-            required
-          />
-          <input
-            className="w-full rounded border px-3 py-2"
-            type="password"
-            placeholder="Senha"
-            value={loginForm.password}
-            onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
-            required
-          />
-          <button className="rounded bg-brand px-4 py-2 text-white" type="submit">
-            Entrar como Admin
-          </button>
-        </form>
-        {message ? <p className="mt-3 text-sm text-green-700">{message}</p> : null}
-        {error ? <p className="mt-3 text-sm text-red-600">{error}</p> : null}
-      </div>
+      <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', xl: 'minmax(340px, 0.9fr) minmax(0, 1.1fr)' } }}>
+        <Card sx={{ borderRadius: 8 }}>
+          <CardContent sx={{ p: { xs: 3, md: 4 } }}>
+            <Typography variant="overline" color="text.secondary" sx={{ letterSpacing: '0.22em', fontWeight: 700 }}>
+              Operacao protegida
+            </Typography>
+            <Typography variant="h2" sx={{ mt: 2 }}>
+              Painel administrativo
+            </Typography>
+            <Typography variant="h6" color="text.secondary" sx={{ mt: 2.5, fontWeight: 400, maxWidth: 540 }}>
+              Esta area concentra aprovacao de influenciadores e leitura rapida dos perfis cadastrados.
+            </Typography>
+
+            <Box sx={{ mt: 4, display: 'grid', gap: 1.5, gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)', xl: '1fr' } }}>
+              <SummaryCard label="Controle" value="Total" note="Veja usuarios, influencers e admins em um mesmo fluxo." />
+              <SummaryCard label="Moderacao" value="Rapida" note="Aprovacao por toggle sem sair da lista." />
+              <SummaryCard label="Leitura" value="Clara" note="Status, datas e IDs ficam visiveis no mesmo contexto." />
+            </Box>
+          </CardContent>
+        </Card>
+
+        <Card sx={{ borderRadius: 8 }}>
+          <CardContent sx={{ p: { xs: 3, md: 4 } }}>
+            <Typography variant="overline" color="text.secondary" sx={{ letterSpacing: '0.18em', fontWeight: 700 }}>
+              Acesso admin
+            </Typography>
+            <Typography variant="h3" sx={{ mt: 1 }}>
+              Entrar
+            </Typography>
+            <Typography color="text.secondary" sx={{ mt: 1.5 }}>
+              Use uma conta com perfil administrativo para abrir o painel.
+            </Typography>
+
+            <Stack component="form" onSubmit={handleLogin} spacing={3} sx={{ mt: 4 }}>
+              <TextField label="E-mail" type="email" placeholder="admin@exemplo.com" value={loginForm.email} onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })} required />
+              <TextField label="Senha" type="password" placeholder="Sua senha" value={loginForm.password} onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })} required />
+              {message ? <Alert severity="success">{message}</Alert> : null}
+              {error ? <Alert severity="error">{error}</Alert> : null}
+              <Button type="submit" variant="contained" size="large" disabled={loggingIn}>
+                {loggingIn ? 'Entrando...' : 'Entrar como admin'}
+              </Button>
+            </Stack>
+          </CardContent>
+        </Card>
+      </Box>
     );
   }
 
   const roleUsers = users.filter((user) => user.role === 'user');
   const influencers = users.filter((user) => user.role === 'influencer');
+  const pendingInfluencers = influencers.filter((user) => !user.is_approved);
   const admins = users.filter((user) => user.role === 'admin');
 
   return (
-    <div className="space-y-8">
-      <section className="rounded-xl bg-gradient-to-r from-slate-800 to-slate-600 p-6 text-white">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h1 className="text-3xl font-bold">Administracao</h1>
-            <p className="mt-2 text-white/90">Usuarios separados por perfil.</p>
-          </div>
-          <button className="rounded border border-white/40 px-4 py-2 text-white" type="button" onClick={handleLogout}>
-            Sair
-          </button>
-        </div>
-      </section>
+    <Stack spacing={4}>
+      <Card sx={{ borderRadius: 8 }}>
+        <CardContent sx={{ p: { xs: 3, md: 4 } }}>
+          <Stack direction={{ xs: 'column', lg: 'row' }} spacing={2} justifyContent="space-between" alignItems={{ lg: 'flex-end' }}>
+            <Box>
+              <Typography variant="overline" color="text.secondary" sx={{ letterSpacing: '0.22em', fontWeight: 700 }}>
+                Administracao
+              </Typography>
+              <Typography variant="h2" sx={{ mt: 2 }}>
+                Visao geral da plataforma
+              </Typography>
+              <Typography variant="h6" color="text.secondary" sx={{ mt: 2.5, fontWeight: 400, maxWidth: 760 }}>
+                O painel agora prioriza leitura de volume, aprovacao pendente e acoes diretas para reduzir o tempo de operacao.
+              </Typography>
+            </Box>
+            <Button variant="outlined" size="large" onClick={handleLogout}>
+              Sair
+            </Button>
+          </Stack>
+        </CardContent>
+      </Card>
 
-      <section>
-        <h2 className="mb-3 text-2xl font-semibold">Usuarios ({roleUsers.length})</h2>
+      <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', xl: 'repeat(4, 1fr)' } }}>
+        <SummaryCard label="Usuarios" value={roleUsers.length} note="Contas compradoras com acesso aos pacotes e salas." />
+        <SummaryCard label="Influencers" value={influencers.length} note="Perfis de vitrine cadastrados na plataforma." />
+        <SummaryCard label="Pendentes" value={pendingInfluencers.length} note="Influenciadores aguardando aprovacao." />
+        <SummaryCard label="Admins" value={admins.length} note="Operadores com acesso ao painel administrativo." />
+      </Box>
+
+      {message ? <Alert severity="success">{message}</Alert> : null}
+      {error ? <Alert severity="error">{error}</Alert> : null}
+
+      <Stack spacing={3}>
+        <Box>
+          <Typography variant="overline" color="text.secondary" sx={{ letterSpacing: '0.18em', fontWeight: 700 }}>
+            Usuarios
+          </Typography>
+          <Typography variant="h4" sx={{ mt: 1 }}>
+            Compradores
+          </Typography>
+        </Box>
         <UsersTable users={roleUsers} emptyLabel="Nenhum usuario encontrado." />
-      </section>
+      </Stack>
 
-      <section>
-        <h2 className="mb-3 text-2xl font-semibold">Influencers ({influencers.length})</h2>
+      <Stack spacing={3}>
+        <Box>
+          <Typography variant="overline" color="text.secondary" sx={{ letterSpacing: '0.18em', fontWeight: 700 }}>
+            Influenciadores
+          </Typography>
+          <Typography variant="h4" sx={{ mt: 1 }}>
+            Moderacao
+          </Typography>
+        </Box>
         <UsersTable
           users={influencers}
           emptyLabel="Nenhum influencer encontrado."
@@ -231,13 +317,19 @@ export default function AdminPage() {
           onToggleApproval={handleToggleInfluencerApproval}
           togglingByUserID={togglingByUserID}
         />
-      </section>
+      </Stack>
 
-      <section>
-        <h2 className="mb-3 text-2xl font-semibold">Admins ({admins.length})</h2>
+      <Stack spacing={3}>
+        <Box>
+          <Typography variant="overline" color="text.secondary" sx={{ letterSpacing: '0.18em', fontWeight: 700 }}>
+            Operadores
+          </Typography>
+          <Typography variant="h4" sx={{ mt: 1 }}>
+            Admins
+          </Typography>
+        </Box>
         <UsersTable users={admins} emptyLabel="Nenhum admin encontrado." />
-      </section>
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
-    </div>
+      </Stack>
+    </Stack>
   );
 }

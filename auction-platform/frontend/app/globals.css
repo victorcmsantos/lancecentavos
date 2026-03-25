@@ -4,42 +4,95 @@
 
 :root {
   --brand-color: #0f766e;
+  --page-bg: #f3efe6;
+  --page-ink: #0f172a;
+  --panel-bg: rgba(255, 255, 255, 0.76);
+  --panel-soft-bg: rgba(255, 255, 255, 0.56);
+  --panel-border: rgba(148, 163, 184, 0.24);
+  --shadow-strong: 0 24px 80px -40px rgba(15, 23, 42, 0.35);
+  --shadow-soft: 0 12px 36px -28px rgba(15, 23, 42, 0.28);
+}
+
+html {
+  min-height: 100%;
+  scroll-behavior: smooth;
+  background:
+    radial-gradient(circle at top left, rgba(15, 118, 110, 0.18), transparent 36%),
+    radial-gradient(circle at top right, rgba(249, 115, 22, 0.16), transparent 28%),
+    linear-gradient(180deg, #fbf7f1 0%, var(--page-bg) 52%, #eef4f5 100%);
 }
 
 body {
-  @apply bg-slate-50 text-slate-900 antialiased;
+  min-height: 100vh;
+  background: transparent;
+  color: var(--page-ink);
+  font-family: var(--font-body), sans-serif;
+  @apply antialiased;
+}
+
+a {
+  @apply transition duration-200;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-display), sans-serif;
+}
+
+::selection {
+  background-color: rgba(15, 118, 110, 0.16);
+}
+
+html.dark {
+  --page-bg: #020617;
+  --page-ink: #e2e8f0;
+  --panel-bg: rgba(15, 23, 42, 0.82);
+  --panel-soft-bg: rgba(15, 23, 42, 0.62);
+  --panel-border: rgba(71, 85, 105, 0.52);
+  background:
+    radial-gradient(circle at top left, rgba(45, 212, 191, 0.12), transparent 36%),
+    radial-gradient(circle at top right, rgba(251, 146, 60, 0.16), transparent 28%),
+    linear-gradient(180deg, #020617 0%, #06111f 52%, #0b1724 100%);
 }
 
 html.dark body {
-  @apply bg-slate-950 text-slate-100;
+  @apply text-slate-100;
 }
 
-html.dark .bg-white {
-  background-color: rgb(15 23 42) !important;
+@layer components {
+  .mui-page-shell {
+    width: min(100%, 96rem);
+  }
 }
 
-html.dark .bg-slate-50 {
-  background-color: rgb(2 6 23) !important;
+:where(a, button, input, textarea, select):focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--brand-color) 68%, white);
+  outline-offset: 3px;
 }
 
-html.dark .border {
-  border-color: rgb(51 65 85) !important;
-}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
 
-html.dark .text-slate-500,
-html.dark .text-slate-600,
-html.dark .text-slate-700 {
-  color: rgb(203 213 225) !important;
-}
-
-html.dark .text-slate-900 {
-  color: rgb(241 245 249) !important;
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 html.dark input,
 html.dark textarea,
 html.dark select {
-  background-color: rgb(15 23 42);
+  background-color: rgb(15 23 42 / 0.88);
   color: rgb(226 232 240);
   border-color: rgb(51 65 85);
 }

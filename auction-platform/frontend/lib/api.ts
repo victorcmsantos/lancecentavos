@@ -1,14 +1,6 @@
 import axios from 'axios';
 
-function resolveBrowserAPIBaseURL(): string {
-  const protocol = window.location.protocol === 'https:' ? 'https' : 'http';
-  return `${protocol}://${window.location.hostname}:8080/api/v1`;
-}
-
-function resolveConfiguredBrowserAPIBaseURL(): string {
-  const configured = process.env.NEXT_PUBLIC_API_URL;
-  if (!configured) return resolveBrowserAPIBaseURL();
-
+function resolveLocalhostOverride(configured: string, fallbackPath: string): string {
   try {
     const parsed = new URL(configured);
     const currentHost = window.location.hostname.toLowerCase();
@@ -16,14 +8,35 @@ function resolveConfiguredBrowserAPIBaseURL(): string {
     const currentIsLocalhostFamily = currentHost === 'localhost' || currentHost.endsWith('.localhost');
     const configuredIsLocalhost = configuredHost === 'localhost';
 
-    // If app is being accessed via subdomain/local network, avoid forcing localhost.
     if (configuredIsLocalhost && !currentIsLocalhostFamily) {
-      return resolveBrowserAPIBaseURL();
+      parsed.hostname = window.location.hostname;
+      if (!parsed.pathname || parsed.pathname === '/') {
+        parsed.pathname = fallbackPath;
+      }
     }
-    return configured;
+
+    return parsed.toString();
   } catch {
-    return resolveBrowserAPIBaseURL();
+    const protocol = window.location.protocol === 'https:' ? 'https' : 'http';
+    return `${protocol}://${window.location.hostname}:18080${fallbackPath}`;
   }
+}
+
+function resolveBrowserAPIBaseURL(): string {
+  const configured = process.env.NEXT_PUBLIC_API_URL;
+  if (!configured) {
+    const protocol = window.location.protocol === 'https:' ? 'https' : 'http';
+    return `${protocol}://${window.location.hostname}:18080/api/v1`;
+  }
+
+  return resolveLocalhostOverride(configured, '/api/v1');
+}
+
+function resolveConfiguredBrowserAPIBaseURL(): string {
+  const configured = process.env.NEXT_PUBLIC_API_URL;
+  if (!configured) return resolveBrowserAPIBaseURL();
+
+  return resolveLocalhostOverride(configured, '/api/v1');
 }
 
 const baseURL =

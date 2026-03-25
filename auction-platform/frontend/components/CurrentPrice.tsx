@@ -1,5 +1,6 @@
 'use client';
 
+import { Typography } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { formatCents } from '@/lib/money';
 
@@ -28,5 +29,9 @@ export function CurrentPrice({ auctionID, initialPrice }: { auctionID: string; i
     return () => window.removeEventListener('auction:bid-update', handleBidUpdate);
   }, [auctionID]);
 
-  return <span className="text-2xl font-bold text-brand">{formatCents(price)}</span>;
+  return (
+    <Typography variant="h3" color="primary.main" sx={{ mt: 1, fontWeight: 700 }}>
+      {formatCents(price)}
+    </Typography>
+  );
 }

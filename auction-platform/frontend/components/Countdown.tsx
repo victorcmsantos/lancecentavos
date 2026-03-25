@@ -1,5 +1,6 @@
 'use client';
 
+import { Chip } from '@mui/material';
 import { useEffect, useState } from 'react';
 
 function formatSeconds(totalSeconds: number): string {
@@ -61,16 +62,10 @@ export function Countdown({ auctionID, endTime, serverTimeUnix }: { auctionID: s
   }, [liveEndTime, liveServerTimeUnix]);
 
   if (!liveEndTime) {
-    return (
-      <div className="text-right">
-        <span className="text-sm font-medium text-slate-500">Aguardando inicio</span>
-      </div>
-    );
+    return <Chip label="Aguardando inicio" variant="outlined" />;
   }
 
-  return (
-    <div className="text-right">
-      <span className="font-mono text-lg font-semibold">{remaining > 0 ? formatSeconds(remaining) : 'Encerrado'}</span>
-    </div>
-  );
+  const isFinished = remaining <= 0;
+
+  return <Chip color={isFinished ? 'default' : 'primary'} variant={isFinished ? 'outlined' : 'filled'} label={isFinished ? 'Encerrado' : formatSeconds(remaining)} />;
 }

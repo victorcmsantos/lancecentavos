@@ -1,21 +1,50 @@
 'use client';
 
+import {
+  Alert,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  Stack,
+  Typography
+} from '@mui/material';
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { getCurrentUser, getToken, setAuthSession } from '@/lib/auth';
+import { formatCents } from '@/lib/money';
 
 type PackageOption = {
   id: 'starter' | 'standard' | 'pro';
   label: string;
   bids: number;
-  price: string;
+  priceInCents: number;
+  highlight?: string;
 };
 
 const PACKAGES: PackageOption[] = [
-  { id: 'starter', label: 'Starter', bids: 20, price: 'R$ 20,00' },
-  { id: 'standard', label: 'Standard', bids: 60, price: 'R$ 45,00' },
-  { id: 'pro', label: 'Pro', bids: 120, price: 'R$ 60,00' }
+  { id: 'starter', label: 'Starter', bids: 20, priceInCents: 2000, highlight: 'Entrada rapida para testar a plataforma' },
+  { id: 'standard', label: 'Standard', bids: 60, priceInCents: 4500, highlight: 'Melhor equilibrio entre saldo e custo' },
+  { id: 'pro', label: 'Pro', bids: 120, priceInCents: 6000, highlight: 'Volume alto para acompanhar varias salas' }
 ];
+
+function SummaryCard({ label, value, helper }: { label: string; value: string | number; helper: string }) {
+  return (
+    <Card sx={{ borderRadius: 7 }}>
+      <CardContent sx={{ p: 3 }}>
+        <Typography variant="overline" color="text.secondary" sx={{ letterSpacing: '0.16em', fontWeight: 700 }}>
+          {label}
+        </Typography>
+        <Typography variant="h3" sx={{ mt: 1 }}>
+          {value}
+        </Typography>
+        <Typography color="text.secondary" sx={{ mt: 1.5 }}>{helper}</Typography>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function BidPackagesPage() {
   function syncCreditsUI(nextCredits: number, userPayload?: any) {
@@ -91,32 +120,112 @@ export default function BidPackagesPage() {
     }
   }
 
+  const activePackage = PACKAGES.find((item) => item.id === loadingPackage);
+
   return (
-    <div className="mx-auto max-w-3xl space-y-4">
-      <section className="rounded-lg border bg-white p-5">
-        <h1 className="text-2xl font-semibold">Pacotes de Lances</h1>
-        <p className="mt-2 text-sm text-slate-600">Saldo atual: {credits} lances</p>
-      </section>
+    <Stack spacing={4}>
+      <Card sx={{ borderRadius: 8 }}>
+        <CardContent sx={{ p: { xs: 3, md: 4 } }}>
+          <Box
+            sx={{
+              display: 'grid',
+              gap: 2,
+              gridTemplateColumns: { xs: '1fr', xl: 'minmax(0, 1.2fr) minmax(360px, 0.8fr)' }
+            }}
+          >
+            <Box>
+              <Typography variant="overline" color="text.secondary" sx={{ letterSpacing: '0.22em', fontWeight: 700 }}>
+                Recarga de saldo
+              </Typography>
+              <Typography variant="h2" sx={{ mt: 2 }}>
+                Escolha um pacote e continue na disputa
+              </Typography>
+              <Typography variant="h6" color="text.secondary" sx={{ mt: 2.5, maxWidth: 720, fontWeight: 400 }}>
+                A compra agora destaca saldo atual, custo por pacote e a melhor opcao para nao interromper sua jornada.
+              </Typography>
+            </Box>
 
-      <section className="grid gap-4 md:grid-cols-3">
-        {PACKAGES.map((pack) => (
-          <div key={pack.id} className="rounded-lg border bg-white p-4">
-            <h2 className="text-lg font-semibold">{pack.label}</h2>
-            <p className="mt-2 text-sm text-slate-600">{pack.bids} lances</p>
-            <p className="text-sm text-slate-600">{pack.price}</p>
-            <button
-              className="mt-4 rounded bg-brand px-4 py-2 text-white disabled:opacity-60"
-              type="button"
-              disabled={loadingPackage === pack.id}
-              onClick={() => handleBuy(pack.id)}
+            <Box
+              sx={{
+                display: 'grid',
+                gap: 2,
+                gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)', xl: '1fr' }
+              }}
             >
-              {loadingPackage === pack.id ? 'Processando...' : 'Comprar'}
-            </button>
-          </div>
-        ))}
-      </section>
+              <SummaryCard label="Saldo atual" value={credits} helper="Veja seus lances antes de voltar para a sala." />
+              <SummaryCard label="Pacotes" value={PACKAGES.length} helper="Opcoes claras para diferentes ritmos de compra." />
+              <SummaryCard label="Fluxo" value="Continuo" helper="Compre e volte para a disputa sem perder contexto." />
+            </Box>
+          </Box>
+        </CardContent>
+      </Card>
 
-      {message ? <p className="text-sm text-slate-700">{message}</p> : null}
-    </div>
+      <Box
+        sx={{
+          display: 'grid',
+          gap: 2,
+          gridTemplateColumns: { xs: '1fr', xl: 'repeat(3, 1fr)' }
+        }}
+      >
+        {PACKAGES.map((pack) => (
+          <Card key={pack.id} sx={{ borderRadius: 7, position: 'relative', overflow: 'visible', borderColor: pack.id === 'standard' ? 'primary.main' : undefined }}>
+            <CardContent sx={{ p: 3 }}>
+              <Stack direction="row" justifyContent="space-between" spacing={2} alignItems="flex-start">
+                <Box>
+                  <Typography variant="overline" color="text.secondary" sx={{ letterSpacing: '0.16em', fontWeight: 700 }}>
+                    Pacote {pack.label}
+                  </Typography>
+                  <Typography variant="h4" sx={{ mt: 1 }}>
+                    {pack.bids} lances
+                  </Typography>
+                </Box>
+                {pack.id === 'standard' ? <Chip color="primary" label="Mais escolhido" /> : null}
+              </Stack>
+
+              <Typography variant="h3" sx={{ mt: 3 }}>
+                {formatCents(pack.priceInCents)}
+              </Typography>
+              <Typography color="text.secondary" sx={{ mt: 1.5 }}>
+                {pack.highlight}
+              </Typography>
+
+              <Card variant="outlined" sx={{ mt: 3, borderRadius: 5 }}>
+                <CardContent>
+                  <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.16em', fontWeight: 700 }}>
+                    Custo por lance
+                  </Typography>
+                  <Typography variant="h5" sx={{ mt: 1.25 }}>
+                    {formatCents(Math.round(pack.priceInCents / pack.bids))}
+                  </Typography>
+                </CardContent>
+              </Card>
+
+              <Button
+                variant="contained"
+                size="large"
+                fullWidth
+                sx={{ mt: 3 }}
+                disabled={loadingPackage === pack.id}
+                onClick={() => handleBuy(pack.id)}
+              >
+                {loadingPackage === pack.id ? 'Processando compra...' : 'Comprar pacote'}
+              </Button>
+            </CardContent>
+          </Card>
+        ))}
+      </Box>
+
+      {message ? <Alert severity={message.toLowerCase().includes('sucesso') ? 'success' : 'error'}>{message}</Alert> : null}
+      {activePackage ? <Alert severity="info">Confirmando a compra do pacote {activePackage.label}.</Alert> : null}
+
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+        <Button component={Link} href="/" variant="outlined" size="large">
+          Explorar vitrines
+        </Button>
+        <Button component={Link} href="/login" variant="outlined" size="large">
+          Trocar conta
+        </Button>
+      </Stack>
+    </Stack>
   );
 }

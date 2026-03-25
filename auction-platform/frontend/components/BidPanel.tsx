@@ -1,5 +1,16 @@
 'use client';
 
+import {
+  Alert,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  Divider,
+  Stack,
+  Typography
+} from '@mui/material';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api, authHeaders } from '@/lib/api';
@@ -19,14 +30,45 @@ type BidUpdate = {
 
 function resolveWsBaseURL(): string {
   const fromEnv = process.env.NEXT_PUBLIC_WS_URL;
-  if (fromEnv) return fromEnv;
+  if (fromEnv) {
+    try {
+      const parsed = new URL(fromEnv);
+      const currentHost = window.location.hostname.toLowerCase();
+      const configuredHost = parsed.hostname.toLowerCase();
+      const currentIsLocalhostFamily = currentHost === 'localhost' || currentHost.endsWith('.localhost');
+      const configuredIsLocalhost = configuredHost === 'localhost';
+
+      if (configuredIsLocalhost && !currentIsLocalhostFamily) {
+        parsed.hostname = window.location.hostname;
+      }
+
+      return parsed.toString().replace(/\/$/, '');
+    } catch {
+      return fromEnv.replace(/\/$/, '');
+    }
+  }
 
   if (typeof window !== 'undefined') {
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    return `${protocol}://${window.location.hostname}:8080`;
+    return `${protocol}://${window.location.hostname}:18080`;
   }
 
   return '';
+}
+
+function StatTile({ label, value }: { label: string; value: string | number }) {
+  return (
+    <Card variant="outlined" sx={{ borderRadius: 5, flex: 1 }}>
+      <CardContent>
+        <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.16em', fontWeight: 700 }}>
+          {label}
+        </Typography>
+        <Typography variant="h5" sx={{ mt: 1 }}>
+          {value}
+        </Typography>
+      </CardContent>
+    </Card>
+  );
 }
 
 export function BidPanel({
@@ -56,6 +98,19 @@ export function BidPanel({
   const [error, setError] = useState('');
   const [availableCredits, setAvailableCredits] = useState<number | null>(null);
   const [usePollingFallback, setUsePollingFallback] = useState<boolean>(false);
+  const quickFeed = bids.slice(0, 5);
+  const isAuthenticated = Boolean(getToken());
+  const tokenRole = getTokenRole();
+  const isNormalUser = tokenRole === 'user';
+  const bidActionDisabled = auctionStatus !== 'active' || !isAuthenticated || !isNormalUser;
+  const primaryActionLabel = !isAuthenticated
+    ? 'Entrar para participar'
+    : !isNormalUser
+      ? 'Apenas usuarios podem dar lance'
+      : auctionStatus === 'active'
+        ? 'Dar lance agora'
+        : 'Lances indisponiveis';
+  const secondaryActionLabel = !isAuthenticated ? 'Criar conta' : 'Comprar mais lances';
 
   const wsURL = useMemo(() => {
     const token = getToken();
@@ -199,7 +254,7 @@ export function BidPanel({
           created_at: top.created_at
         });
       } catch {
-        // keep last known state; websocket may still be connected
+        // keep last state
       }
     }
 
@@ -222,9 +277,15 @@ export function BidPanel({
 
     const token = getToken();
     if (!token) {
-      setError('Faca login primeiro');
+      router.push('/login');
       return;
     }
+
+    if (getTokenRole() !== 'user') {
+      setError('Apenas usuarios compradores podem participar desta disputa.');
+      return;
+    }
+
     if (typeof availableCredits === 'number' && availableCredits <= 0) {
       router.push('/user/bid-packages');
       return;
@@ -269,34 +330,99 @@ export function BidPanel({
   }
 
   return (
-    <div className="space-y-4">
-      <form onSubmit={handleBid} className="rounded-lg border bg-white p-4">
-        <label className="block text-sm font-medium">Lance Rapido</label>
-        <p className="mt-2 text-sm text-slate-600">Cada lance aumenta o valor do produto em um centavo.</p>
-        <button
-          className="mt-3 rounded bg-brand px-4 py-2 text-white disabled:cursor-not-allowed disabled:opacity-60"
-          type="submit"
-          disabled={auctionStatus !== 'active'}
-        >
-          Lance!!
-        </button>
-        {auctionStatus !== 'active' ? <p className="mt-2 text-sm text-slate-500">Os lances abrem quando o influenciador iniciar este leilao.</p> : null}
-        {typeof availableCredits === 'number' ? <p className="mt-2 text-sm text-slate-500">Seus lances disponiveis: {availableCredits}</p> : null}
-        {error ? <p className="mt-2 text-sm text-red-600">{error}</p> : null}
-      </form>
+    <Stack spacing={3}>
+      <Card component="form" onSubmit={handleBid} sx={{ borderRadius: 7 }}>
+        <CardContent sx={{ p: { xs: 2.5, sm: 3 } }}>
+          <Stack spacing={3}>
+            <Stack direction={{ xs: 'column', lg: 'row' }} spacing={3} justifyContent="space-between" alignItems={{ lg: 'flex-end' }}>
+              <Box sx={{ maxWidth: 620 }}>
+                <Typography variant="overline" color="text.secondary" sx={{ letterSpacing: '0.18em', fontWeight: 700 }}>
+                  Acao principal
+                </Typography>
+                <Typography variant="h5" sx={{ mt: 1 }}>
+                  Dar um lance rapido
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5 }}>
+                  Cada clique adiciona um centavo ao valor atual. A resposta visual e imediata e o feed atualiza em tempo real.
+                </Typography>
+              </Box>
 
-      <div className="rounded-lg border bg-white p-4">
-        <h2 className="mb-3 text-lg font-semibold">Feed ao Vivo</h2>
-        <div className="space-y-2">
-          {bids.map((bid) => (
-            <div key={bid.id} className="flex items-center justify-between rounded border p-2 text-sm">
-              <span className="font-mono">{bid.user_id.slice(0, 8)}</span>
-              <span className="font-semibold">{formatCents(bid.amount)}</span>
-              <span>{new Date(bid.created_at).toLocaleTimeString('pt-BR')}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ width: { xs: '100%', lg: 'auto' } }}>
+                <StatTile label="Preco atual" value={formatCents(currentPrice)} />
+                <StatTile label="Seus creditos" value={typeof availableCredits === 'number' ? availableCredits : '-'} />
+              </Stack>
+            </Stack>
+
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+              <Button type="submit" variant="contained" size="large" disabled={bidActionDisabled}>
+                {primaryActionLabel}
+              </Button>
+              <Button variant="outlined" size="large" onClick={() => router.push(!isAuthenticated ? '/register' : '/user/bid-packages')}>
+                {secondaryActionLabel}
+              </Button>
+            </Stack>
+
+            {!isAuthenticated ? <Alert severity="info">Entre com sua conta para liberar saldo, historico e acesso ao lance em um clique.</Alert> : null}
+            {isAuthenticated && !isNormalUser ? <Alert severity="warning">Esta sala aceita apenas contas de usuario comprador para novos lances.</Alert> : null}
+            {auctionStatus !== 'active' ? <Alert severity="info">Os lances abrem quando o influenciador iniciar este leilao.</Alert> : null}
+            {usePollingFallback ? <Alert severity="warning">Conexao em tempo real instavel. O feed foi alternado para atualizacao automatica.</Alert> : null}
+            {typeof availableCredits === 'number' && availableCredits <= 3 && auctionStatus === 'active' ? (
+              <Alert severity="warning">Seu saldo esta baixo. Recarregue antes de perder o ritmo da disputa.</Alert>
+            ) : null}
+            {error ? <Alert severity="error">{error}</Alert> : null}
+          </Stack>
+        </CardContent>
+      </Card>
+
+      <Card sx={{ borderRadius: 7 }}>
+        <CardContent sx={{ p: { xs: 2.5, sm: 3 } }}>
+          <Stack direction="row" justifyContent="space-between" alignItems="flex-end" spacing={2}>
+            <Box>
+              <Typography variant="overline" color="text.secondary" sx={{ letterSpacing: '0.18em', fontWeight: 700 }}>
+                Ao vivo
+              </Typography>
+              <Typography variant="h5" sx={{ mt: 1 }}>
+                Feed da sala
+              </Typography>
+            </Box>
+            <Chip color="primary" variant="outlined" label={`${quickFeed.length} eventos`} />
+          </Stack>
+
+          {!quickFeed.length ? <Alert severity="info" sx={{ mt: 3 }}>Nenhum movimento ainda. O primeiro lance vai aparecer aqui.</Alert> : null}
+
+          <Stack spacing={1.5} sx={{ mt: 3 }} aria-live="polite">
+            {quickFeed.map((bid, index) => (
+              <Card key={bid.id} variant="outlined" sx={{ borderRadius: 5 }}>
+                <CardContent>
+                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="space-between" alignItems={{ sm: 'center' }}>
+                    <Stack spacing={0.5}>
+                      <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.16em', fontWeight: 700 }}>
+                        Participante
+                      </Typography>
+                      <Typography sx={{ fontFamily: 'monospace' }}>{bid.user_id.slice(0, 8)}</Typography>
+                    </Stack>
+                    <Divider orientation="vertical" flexItem sx={{ display: { xs: 'none', sm: 'block' } }} />
+                    <Stack spacing={0.5}>
+                      <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.16em', fontWeight: 700 }}>
+                        Lance
+                      </Typography>
+                      <Typography variant="h6">{formatCents(bid.amount)}</Typography>
+                    </Stack>
+                    <Divider orientation="vertical" flexItem sx={{ display: { xs: 'none', sm: 'block' } }} />
+                    <Stack spacing={0.5}>
+                      <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.16em', fontWeight: 700 }}>
+                        Horario
+                      </Typography>
+                      <Typography color="text.secondary">{new Date(bid.created_at).toLocaleTimeString('pt-BR')}</Typography>
+                    </Stack>
+                    {index === 0 ? <Chip color="primary" label="Lidera o feed" size="small" /> : null}
+                  </Stack>
+                </CardContent>
+              </Card>
+            ))}
+          </Stack>
+        </CardContent>
+      </Card>
+    </Stack>
   );
 }

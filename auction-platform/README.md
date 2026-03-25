@@ -14,15 +14,16 @@ auction-platform/
 
 ```bash
 cd auction-platform
+cp .env.example .env
 docker compose up --build
 ```
 
 ## Local URLs
 
-- Frontend: http://localhost:3000
-- Backend: http://localhost:8080
-- Postgres: localhost:5432
-- Redis: localhost:6379
+- Frontend: http://localhost:13000
+- Backend: http://localhost:18080
+- Postgres: localhost:15432
+- Redis: localhost:16379
 
 ## White-label Local Testing
 
@@ -35,8 +36,8 @@ Add hosts entries:
 
 Then open:
 
-- http://influencer1.localhost:3000
-- http://influencer2.localhost:3000
+- http://influencer1.localhost:13000
+- http://influencer2.localhost:13000
 
 ## Backend API
 
@@ -54,8 +55,29 @@ Then open:
 
 ## Environment
 
+Docker Compose env file: `.env.example`
 Backend env file: `backend/.env.example`
 Frontend env file: `frontend/.env.example`
+
+### Bootstrap admin (dev)
+
+On backend startup, if there is no existing `admin` user, the backend can create one automatically.
+
+- Configure in `auction-platform/.env`:
+  - `BOOTSTRAP_ADMIN_EMAIL` (default: `admin@local`)
+  - `BOOTSTRAP_ADMIN_PASSWORD`
+    - empty: generates a random password and writes it to `auction-platform/.generated/admin.json`
+    - set: uses your provided password and does not keep a generated credential file
+  - `BOOTSTRAP_ADMIN_FORCE_RESET=true` to rotate/reset the admin password (use once, then disable)
+  - `BOOTSTRAP_ADMIN_OUTPUT_PATH` to change where the generated credential file is written inside Docker
+
+Retrieve the last generated password (dev only):
+
+```bash
+cat .generated/admin.json
+```
+
+The generated file is ignored by git and is mounted from the host into the backend container.
 
 ## Security Implemented
 

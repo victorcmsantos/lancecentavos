@@ -37,7 +37,10 @@ go.work.sum
 
 # Docker
 *.pid
+.generated/
 
 # Misc
 *.tmp
 *.bak
+
+**/../.DS_Store

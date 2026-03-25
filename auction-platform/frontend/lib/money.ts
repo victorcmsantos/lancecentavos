@@ -1,5 +1,8 @@
 export function formatCents(value: number): string {
-  return `$${(value / 100).toFixed(2)}`;
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL'
+  }).format(value / 100);
 }
 
 export function parseReaisToCents(raw: string): number | null {
